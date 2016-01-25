@@ -16,6 +16,14 @@ object MetricsUtil extends MetricsUtilTrait
 
 trait MetricsUtilTrait {
 
+  private var metricsReporterType = ""
+
+  /**
+    *
+    * @return The name of the Metrics Reporter
+    */
+  def getMetricsReporterType = metricsReporterType
+
   /**
    * Name of the top-level node in Graphite's hierarchy of logged metrics.
    */
@@ -56,7 +64,7 @@ trait MetricsUtilTrait {
     )
   )
 
-  def getHistogram(name: String, biased: Boolean): Histogram = Metrics.histogram(
+  def getHistogram(name: String, biased: Boolean = false): Histogram = Metrics.histogram(
     new MetricName(name, JavaConversions.mapAsJavaMap(Map[String, String](
       "group" -> groupName,
       "class" -> getCallingClassName,
@@ -66,10 +74,11 @@ trait MetricsUtilTrait {
     )
   )
 
-  def enableReporter(scheduleReporter: ScheduledReporter): Boolean = scheduleReporter match {
+  def enableReporter(scheduleReporter: ScheduledReporter, metricsReporterType: String): Boolean = scheduleReporter match {
     case null => false
     case reporter => {
       reporter.start(1, TimeUnit.MINUTES)
+      this.metricsReporterType = metricsReporterType
       true
     }
   }
@@ -87,6 +96,7 @@ trait MetricsUtilTrait {
     enableReporter(
       InfluxDbReporter
         .forRegistry(Metrics)
-        .build(new InfluxDbHttpSender(server, port, database, user, password))
+        .build(new InfluxDbHttpSender(server, port, database, user, password)),
+      "Influxdb reporter"
     )
 }
